@@ -1,0 +1,19 @@
+/* Exercise labels: numbered questions, multiple-choice items, and groups. */
+
+.exercise-label,
+.question-group-label {
+  color: var(--bs-primary, currentColor);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  scroll-margin-top: 5rem;
+  white-space: nowrap;
+}
+
+/* The label replaces the automatic section number, in the heading and in the
+   table of contents. */
+.exercise-heading > .header-section-number,
+.question-group-heading > .header-section-number,
+#TOC a:has(.question-group-label) > .header-section-number,
+#TOC a:has(.exercise-label) > .header-section-number {
+  display: none;
+}

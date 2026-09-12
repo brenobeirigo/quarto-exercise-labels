@@ -1,0 +1,54 @@
+---
+title: "Exercise labels example"
+format:
+  html:
+    toc: true
+    number-sections: true
+filters:
+  - exercise-labels
+exercise-labels:
+  prefix: "3"
+---
+
+## Before the exercises
+
+Ordinary sections keep their automatic numbers. Exercise headings show their
+label instead.
+
+## Exercises
+
+A heading titled Exercises marks the level-3 headings below it as questions.
+
+### Compute the sample mean
+
+Eight delivery times, in minutes, are 31, 28, 35, 30, 33, 29, 34, and 32.
+Compute their mean.
+
+### Pick the median {data-kind="M"}
+
+`data-kind="M"` makes this a multiple-choice item with its own counter.
+
+::: {.alpha-list}
+- 31
+- 31.5
+- 32
+:::
+
+### Explain the difference {#exr-explain}
+
+Explain why the mean and the median can differ.
+
+## Included exercise
+
+An exercise file usually starts with a level-1 heading. The include moves it to
+level 3 and labels its first heading.
+
+::: {.exercise-include target-level="3"}
+# Trace the running total
+
+Trace `total` after each of the values 4, 7, and 3.
+
+## Hint
+
+Start with `total = 0`.
+:::

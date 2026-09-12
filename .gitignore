@@ -1,0 +1,13 @@
+/.quarto/
+/_site/
+/example*.html
+/example*.pdf
+/example*.tex
+/example*_files/
+/tmp/
+*.aux
+*.log
+*.out
+*.toc
+__pycache__/
+*.pyc

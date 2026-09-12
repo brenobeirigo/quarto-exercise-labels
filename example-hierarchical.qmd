@@ -1,0 +1,31 @@
+---
+title: "Hierarchical exercise labels"
+format:
+  html:
+    toc: true
+filters:
+  - exercise-labels
+exercise-labels:
+  numbering: hierarchical
+---
+
+## Budget a small event {.question-group}
+
+A group heading introduces shared context. Its questions are numbered within it.
+
+### Add the fixed costs {.exercise}
+
+The venue costs 400 euros and catering costs 250 euros. Add the fixed costs.
+
+### Choose the cheaper venue {.exercise data-kind="M"}
+
+::: {.alpha-list}
+- The hall at 400 euros
+- The garden at 350 euros
+:::
+
+## Forecast attendance {.question-group}
+
+### Extend the trend {.exercise}
+
+Attendance was 40, 46, and 52 in the last three years. Forecast next year.
