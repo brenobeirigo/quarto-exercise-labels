@@ -214,6 +214,25 @@ class ExerciseLabelTests(unittest.TestCase):
         self.assertIsNone(found["sec-setup-case"]["label"])
         self.assertEqual(found["exr-process"]["label"], "Q1")
 
+    def test_case_questions_share_one_setup(self):
+        setup = (
+            '::: {.exercise-setup setup="case"}\n'
+            "# Case background\n\n"
+            "SHARED\n"
+            ":::\n\n"
+        )
+        result = self.run_pandoc(
+            "::: {.exercise-include}\n" + setup + "# First part {#exr-first}\n:::\n\n"
+            "::: {.exercise-include}\n" + setup + "# Second part {#exr-second}\n:::\n"
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.count("SHARED"), 1)
+        found = {}
+        collect_headings(json.loads(result.stdout)["blocks"], found)
+        self.assertIsNone(found["case-background"]["label"])
+        self.assertEqual(found["exr-first"]["label"], "Q1")
+        self.assertEqual(found["exr-second"]["label"], "Q2")
+
     def test_include_with_alpha_list_is_multiple_choice(self):
         found = self.headings(
             "::: {.exercise-include}\n"

@@ -74,6 +74,11 @@ An include whose first heading has an identifier starting with `sec-setup-`
 (or the older `sec-mcq-setup-`) is a shared background for the questions after
 it: its headings move, but it gets no label and no number.
 
+A question of a case study can start by including its setup, wrapped in
+`::: {.exercise-setup setup="<case>"}`. The setup is never labelled, the
+question heading after it is, and when a page holds several questions of the
+same case, only the first copy of the setup stays.
+
 ### Question groups
 
 With `numbering: hierarchical`, a `.question-group` heading shows "Exercise 1:"

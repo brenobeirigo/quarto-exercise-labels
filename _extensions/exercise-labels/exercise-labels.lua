@@ -364,7 +364,20 @@ local function label_document(doc, options)
     local first = true
     local bank_level = nil
 
-    return pandoc.walk_block(div, {
+    -- A case-study question starts with its setup, a .exercise-setup block of
+    -- shared background: set it aside so the question heading gets the label.
+    local setups = pandoc.List()
+    local rest = pandoc.List()
+    for _, block in ipairs(div.content) do
+      if block.t == "Div" and has_class(block, "exercise-setup") then
+        setups:insert(block)
+      else
+        rest:insert(block)
+      end
+    end
+    div.content = rest
+
+    local labelled = pandoc.walk_block(div, {
       Header = function(header)
         if is_bank then
           if bank_level == nil then
@@ -386,6 +399,9 @@ local function label_document(doc, options)
         return mark_exercise(header, explicit_kind(header) or default_kind, true)
       end,
     })
+    setups:extend(labelled.content)
+    labelled.content = setups
+    return labelled
   end
 
   local function walk_blocks(blocks)
@@ -457,8 +473,30 @@ local function add_stylesheet()
   end
 end
 
+-- Keep only the first copy of each setup on the page: every question of a
+-- case study includes its setup, and a page may hold several of them.
+local function remove_repeated_setups(blocks, seen)
+  local kept = pandoc.List()
+  for _, block in ipairs(blocks) do
+    if block.t == "Div" and has_class(block, "exercise-setup") then
+      local key = block.attributes["setup"] or block.identifier
+      if not seen[key] then
+        seen[key] = true
+        kept:insert(block)
+      end
+    else
+      if block.t == "Div" then
+        block.content = remove_repeated_setups(block.content, seen)
+      end
+      kept:insert(block)
+    end
+  end
+  return kept
+end
+
 function Pandoc(doc)
   local options = read_options(doc.meta)
   add_stylesheet()
+  doc.blocks = remove_repeated_setups(doc.blocks, {})
   return label_document(doc, options)
 end

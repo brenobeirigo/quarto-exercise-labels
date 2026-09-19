@@ -5,6 +5,9 @@
 - A setup heading, whose identifier starts with `sec-setup-` or the older
   `sec-mcq-setup-`, is never labelled, also as the first heading of an exercise
   include. It holds the shared background of the questions after it.
+- A `.exercise-setup` block at the start of an include is the setup of a case
+  study: it gets no label, the question after it does, and when a page holds
+  several questions of one case, only the first copy of the setup stays.
 
 ## 1.0.0
 
