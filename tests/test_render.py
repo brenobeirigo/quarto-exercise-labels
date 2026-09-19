@@ -244,6 +244,15 @@ class ExerciseLabelTests(unittest.TestCase):
         self.assertEqual(heading["level"], 3)
         self.assertEqual(heading["label"], "M1")
 
+    def test_include_answer_list_beats_the_identifier(self):
+        found = self.headings(
+            "::: {.exercise-include}\n"
+            "# Type hints {#sec-exercise-hints}\n\n"
+            "::: {.alpha-list}\n- One\n- Two\n:::\n"
+            ":::\n"
+        )
+        self.assertEqual(found["sec-exercise-hints"]["label"], "M1")
+
     def test_exercise_bank_labels_each_child_heading(self):
         found = self.headings(
             '::: {.exercise-include .exercise-bank target-level="2"}\n'

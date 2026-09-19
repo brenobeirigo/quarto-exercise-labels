@@ -158,7 +158,8 @@ local function is_setup_heading(header)
       or identifier:match("^sec%-mcq%-setup%-") ~= nil
 end
 
-local function explicit_kind(header)
+-- The kind a heading states itself, through data-kind or a class.
+local function marked_kind(header)
   local kind = header.attributes["data-kind"]
     or header.attributes["data-exercise-kind"]
     or header.attributes["data-exercise-type"]
@@ -175,7 +176,14 @@ local function explicit_kind(header)
   if has_class(header, "exercise") or has_class(header, "question") then
     return "Q"
   end
+  return nil
+end
 
+local function explicit_kind(header)
+  local marked = marked_kind(header)
+  if marked ~= nil then
+    return marked
+  end
   if is_setup_heading(header) then
     return nil
   end
@@ -396,7 +404,8 @@ local function label_document(doc, options)
         if is_setup_heading(header) then
           return header
         end
-        return mark_exercise(header, explicit_kind(header) or default_kind, true)
+        -- An included file with an answer list is multiple choice, whatever its id says.
+        return mark_exercise(header, marked_kind(header) or default_kind, true)
       end,
     })
     setups:extend(labelled.content)

@@ -8,6 +8,9 @@
 - A `.exercise-setup` block at the start of an include is the setup of a case
   study: it gets no label, the question after it does, and when a page holds
   several questions of one case, only the first copy of the setup stays.
+- An included file with an answer list is labelled multiple choice even when
+  its identifier (`sec-exercise-`, `exr-`) suggests an open question. A
+  `data-kind` or class on the heading still decides first.
 
 ## 1.0.0
 
