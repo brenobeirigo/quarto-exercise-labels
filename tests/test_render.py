@@ -201,6 +201,19 @@ class ExerciseLabelTests(unittest.TestCase):
         self.assertEqual(found["hint"]["level"], 5)
         self.assertIsNone(found["hint"]["label"])
 
+    def test_setup_include_is_not_labelled(self):
+        found = self.headings(
+            "::: {.exercise-include}\n"
+            "# Case background {#sec-setup-case}\n"
+            ":::\n\n"
+            "::: {.exercise-include}\n"
+            "# Process the data {#exr-process}\n"
+            ":::\n"
+        )
+        self.assertEqual(found["sec-setup-case"]["level"], 3)
+        self.assertIsNone(found["sec-setup-case"]["label"])
+        self.assertEqual(found["exr-process"]["label"], "Q1")
+
     def test_include_with_alpha_list_is_multiple_choice(self):
         found = self.headings(
             "::: {.exercise-include}\n"

@@ -70,6 +70,10 @@ defaults to 3, and that first heading becomes the exercise. The kind is `M` when
 the include contains an `.alpha-list`, and `Q` otherwise. Add `.exercise-bank`
 to label every heading one level below the first one instead.
 
+An include whose first heading has an identifier starting with `sec-setup-`
+(or the older `sec-mcq-setup-`) is a shared background for the questions after
+it: its headings move, but it gets no label and no number.
+
 ### Question groups
 
 With `numbering: hierarchical`, a `.question-group` heading shows "Exercise 1:"

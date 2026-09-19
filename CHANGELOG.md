@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1
+
+- A setup heading, whose identifier starts with `sec-setup-` or the older
+  `sec-mcq-setup-`, is never labelled, also as the first heading of an exercise
+  include. It holds the shared background of the questions after it.
+
 ## 1.0.0
 
 - First release. Number open questions and multiple-choice items in headings,

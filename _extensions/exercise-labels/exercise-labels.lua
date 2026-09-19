@@ -17,7 +17,7 @@
 --   max-level             deeper exercise headings are raised to it (3)
 --   hide-exercise-groups  remove .exercise-group headings (true)
 
-local VERSION = "1.0.0"
+local VERSION = "1.0.1"
 
 -- Level-2 section identifiers whose level-3 headings are exercises.
 local SECTION_KINDS = {
@@ -150,6 +150,14 @@ end
 
 -- Heading classification
 
+-- A setup heading opens the shared background of the questions after it and is
+-- never labelled. sec-mcq-setup- is the older, multiple-choice-only prefix.
+local function is_setup_heading(header)
+  local identifier = header.identifier or ""
+  return identifier:match("^sec%-setup%-") ~= nil
+      or identifier:match("^sec%-mcq%-setup%-") ~= nil
+end
+
 local function explicit_kind(header)
   local kind = header.attributes["data-kind"]
     or header.attributes["data-exercise-kind"]
@@ -168,10 +176,10 @@ local function explicit_kind(header)
     return "Q"
   end
 
-  local identifier = header.identifier
-  if identifier:match("^sec%-mcq%-setup%-") then
+  if is_setup_heading(header) then
     return nil
   end
+  local identifier = header.identifier
   if identifier:match("^exr%-mcq[-_]") or identifier:match("^sec%-mcq[-_]") then
     return "M"
   end
@@ -372,6 +380,9 @@ local function label_document(doc, options)
           return header
         end
         first = false
+        if is_setup_heading(header) then
+          return header
+        end
         return mark_exercise(header, explicit_kind(header) or default_kind, true)
       end,
     })
