@@ -123,9 +123,24 @@ the level, or to hierarchical numbering, which keeps every level.
 - A heading without an identifier gets `exr-<title>` and a
   `data-generated-anchor` attribute.
 
-The bundled stylesheet colours labels with the Bootstrap primary colour and
-hides Quarto section numbers on exercise headings. The
-[Lucid theme](https://brenobeirigo.github.io/quarto-extensions/lucid.html) also
+The bundled stylesheet colours labels with `--exercise-label-color` when set,
+then the Bootstrap primary colour, and finally the heading's current text
+colour.
+It hides Quarto section numbers on exercise headings.
+Set the CSS variable on the page or a surrounding container to style both
+exercise and question-group labels without changing the generated markup:
+
+```css
+:root {
+  --exercise-label-color: #315c45;
+}
+```
+
+The filter does not inject inline colours.
+A host theme can still apply a more specific `color` rule directly to the label;
+in that case, adapt that rule or add a scoped host stylesheet rule using
+`color: var(--exercise-label-color, var(--bs-primary, currentColor))`.
+The [Lucid theme](https://brenobeirigo.github.io/quarto-extensions/lucid.html) also
 adds a copy-reference button to each label and retitles a callout written as
 `title="Solution [-@exr-id]"` to "Solution to Q1".
 

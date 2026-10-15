@@ -11,6 +11,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from html.parser import HTMLParser
 
 
 REPOSITORY = Path(__file__).resolve().parents[1]
@@ -312,6 +313,49 @@ class ExerciseLabelTests(unittest.TestCase):
             grouped = (project / "example-hierarchical.html").read_text(encoding="utf-8")
             self.assertIn('data-exercise-id="Q1.1"', grouped)
             self.assertIn('class="question-group-label"', grouped)
+
+    def test_rendered_labels_keep_host_color_hooks_without_inline_styles(self):
+        class Labels(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.labels = []
+
+            def handle_starttag(self, tag, attrs):
+                attributes = dict(attrs)
+                classes = set(attributes.get("class", "").split())
+                if tag == "span" and classes & {"exercise-label", "question-group-label"}:
+                    self.labels.append(attributes)
+
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            shutil.copytree(REPOSITORY / "_extensions", project / "_extensions")
+            (project / "host.css").write_text(
+                "body { --exercise-label-color: #315c45; }\n", encoding="utf-8")
+            (project / "theme.qmd").write_text(
+                "---\ntitle: Host theme\nformat:\n  html:\n"
+                "    theme: cosmo\n    css: host.css\nfilters:\n"
+                "  - exercise-labels\nexercise-labels:\n"
+                "  numbering: hierarchical\n---\n\n"
+                "## A group {.question-group}\n\n"
+                "### A question {.exercise}\n\nContent.\n", encoding="utf-8")
+            result = subprocess.run(
+                [QUARTO, "render", "theme.qmd", "--to", "html"],
+                cwd=project, text=True, encoding="utf-8", capture_output=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            html = (project / "theme.html").read_text(encoding="utf-8")
+            parser = Labels()
+            parser.feed(html)
+            self.assertEqual(len(parser.labels), 2)
+            self.assertTrue(all("style" not in label for label in parser.labels))
+            self.assertIn("host.css", html)
+            dependencies = list((project / "theme_files").rglob("exercise-labels.css"))
+            self.assertEqual(len(dependencies), 1)
+            css = dependencies[0].read_text(encoding="utf-8")
+            self.assertIn(
+                "color: var(--exercise-label-color, var(--bs-primary, currentColor))", css)
+            self.assertNotIn("--exercise-label-color:", css)
 
 
 if __name__ == "__main__":

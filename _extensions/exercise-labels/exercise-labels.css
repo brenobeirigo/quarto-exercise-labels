@@ -2,7 +2,7 @@
 
 .exercise-label,
 .question-group-label {
-  color: var(--bs-primary, currentColor);
+  color: var(--exercise-label-color, var(--bs-primary, currentColor));
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   scroll-margin-top: 5rem;

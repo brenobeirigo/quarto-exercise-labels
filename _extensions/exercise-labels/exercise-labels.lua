@@ -17,7 +17,7 @@
 --   max-level             deeper exercise headings are raised to it (3)
 --   hide-exercise-groups  remove .exercise-group headings (true)
 
-local VERSION = "1.0.1"
+local VERSION = "1.1.0"
 
 -- Level-2 section identifiers whose level-3 headings are exercises.
 local SECTION_KINDS = {
