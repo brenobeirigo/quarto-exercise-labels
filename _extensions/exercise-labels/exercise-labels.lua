@@ -35,8 +35,11 @@ local SECTION_KINDS = {
   ["multiple-choice-questions"] = "M",
 }
 
+-- Quarto logs a Lua error and keeps rendering, so an invalid option or
+-- attribute stops the process instead: a wrong page would otherwise print.
 local function fail(message)
-  error("exercise-labels: " .. message, 0)
+  io.stderr:write("exercise-labels: " .. message .. "\n")
+  os.exit(1)
 end
 
 local PRINT_STARTS = { page = true, verso = true, recto = true }

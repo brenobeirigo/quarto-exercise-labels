@@ -22,7 +22,9 @@ local function answers_build(meta)
   if audience ~= nil then
     local value = pandoc.utils.stringify(audience):lower()
     if value ~= "student" and value ~= "answers" then
-      error("neutral-answer-ids: exercise-audience must be student or answers, got " .. value, 0)
+      -- Quarto logs a Lua error and keeps rendering; stop the process instead.
+      io.stderr:write("neutral-answer-ids: exercise-audience must be student or answers, got " .. value .. "\n")
+      os.exit(1)
     end
     return value == "answers"
   end
