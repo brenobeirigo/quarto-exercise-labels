@@ -19,6 +19,11 @@ output. HTML output also loads a small stylesheet.
 quarto add brenobeirigo/quarto-exercise-labels
 ```
 
+The repository installs two extensions: `exercise-labels` and
+[`neutral-answer-ids`](#neutral-answer-ids). Each one is enabled on its own.
+Both run at the `pre-ast` stage, before Quarto turns callouts and
+cross-reference targets into its own elements.
+
 ## Enable
 
 ```yaml
@@ -77,7 +82,44 @@ it: its headings move, but it gets no label and no number.
 A question of a case study can start by including its setup, wrapped in
 `::: {.exercise-setup setup="<case>"}`. The setup is never labelled, the
 question heading after it is, and when a page holds several questions of the
-same case, only the first copy of the setup stays.
+same case, only the first copy of the setup stays. The setup and the question
+each move so that their first heading sits at `target-level`.
+
+An include hands back its content without the wrapping div, so a table of
+contents lists both the setup and the question.
+
+A paper host can set two more attributes on an include:
+
+| Attribute | Effect |
+|---|---|
+| `exercise-label="Question 1"` | Uses this text as the label instead of the counter. An empty value, `exercise-label=""`, shows no label, for a question printed on its own page. |
+| `print-start="verso"` | Records `data-print-start` on the question heading, for print stylesheets. The value is `page`, `verso` or `recto`. A heading can carry `print-start` too. |
+
+```markdown
+::: {.exercise-include target-level="2" exercise-label="Question 1" print-start="verso"}
+{{< include questions/mcq-count-local-global.qmd >}}
+:::
+```
+
+### Student and answer versions
+
+Set the top-level `exercise-audience` metadata to build a student or an answer
+version of a paper from the same sources, usually in two Quarto profiles:
+
+```yaml
+# _quarto-questions.yml
+exercise-audience: student
+
+# _quarto-answers.yml
+exercise-audience: answers
+```
+
+Inside exercise includes, a `student` build removes every note callout, such
+as a `Solution`, and the `.correct` marker of each correct alternative, so the
+page source holds no answer. A note callout with the class `.question-aside`
+belongs to the question and stays, unless its title names a solution, answer,
+rubric or marking. An `answers` build keeps everything and starts each note
+callout collapsed. Without `exercise-audience`, includes stay as written.
 
 ### Question groups
 
@@ -103,7 +145,8 @@ exercise-labels:
   prefix: ""                  # "2.4" gives 2.4.Q1
   question: Q                 # letter for open questions
   choice: M                   # letter for multiple-choice items
-  separator: ""               # ":" gives "Q1: Title"
+  suffix: ""                  # ")" gives "Q1) Title", inside the label
+  separator: ""               # ":" gives "Q1: Title", after the label
   group-label: Exercise       # word before a group number
   max-level: 3                # deeper exercise headings are raised to this level
   hide-exercise-groups: true  # remove .exercise-group headings
@@ -114,8 +157,10 @@ the level, or to hierarchical numbering, which keeps every level.
 
 ## Output
 
-- An exercise heading gets the classes `exercise-heading exercise` and the
-  attributes `data-exercise-id` and `data-exercise-kind`.
+- An exercise heading gets the classes `exercise-heading exercise`, then
+  `mcq-question` or `open-question`, and the attributes `data-exercise-id` and
+  `data-exercise-kind`. A heading with an empty fixed label has no
+  `data-exercise-id`.
 - The label is `<span class="exercise-label" data-exercise-id="Q1" data-exercise-type="Q">`.
 - A question group heading gets the class `question-group-heading` and the
   attribute `data-question-group-id`, and its label span has the class
@@ -143,6 +188,29 @@ in that case, adapt that rule or add a scoped host stylesheet rule using
 The [Lucid theme](https://brenobeirigo.github.io/quarto-extensions/lucid.html) also
 adds a copy-reference button to each label and retitles a callout written as
 `title="Solution [-@exr-id]"` to "Solution to Q1".
+
+## Neutral answer ids
+
+Questions often name their alternatives in identifiers, such as
+`lst-fee-correct1` or `fig-cellphone-wrong2`. An identifier is in the page
+source, and a reader sees it when hovering a link. Enable the second extension
+to rename them in student builds:
+
+```yaml
+filters:
+  - exercise-labels
+  - neutral-answer-ids
+```
+
+In a student build, every listing, figure or table identifier that contains
+`correct` or `wrong` becomes `<prefix>-option-<n>`, numbered in page order, so
+neither the name nor the number gives the answer away. Cross-references, links,
+code cell labels and raw HTML follow the new identifiers. Section identifiers
+stay.
+
+The build is for answers when `exercise-audience` is `answers`. Without that
+option, it is for answers when the active Quarto profiles include `answers`.
+An answer build keeps the authored identifiers.
 
 ## Examples
 

@@ -12,12 +12,21 @@
 --   prefix                prepended to every label: "2.4" gives 2.4.Q1
 --   question              letter for open questions (Q)
 --   choice                letter for multiple-choice items (M)
+--   suffix                text inside the label after its number, such as ")"
 --   separator             text between a label and its heading (empty)
 --   group-label           word in front of a question group number (Exercise)
 --   max-level             deeper exercise headings are raised to it (3)
 --   hide-exercise-groups  remove .exercise-group headings (true)
+--
+-- Top-level metadata, shared with the neutral-answer-ids filter:
+--   exercise-audience     student or answers; unset leaves answers untouched
+--
+-- An exercise include also takes these attributes:
+--   target-level          level of the included question heading (3)
+--   exercise-label        fixed label text, such as "Question 1"; "" shows none
+--   print-start           page, verso or recto, recorded as data-print-start
 
-local VERSION = "1.1.0"
+local VERSION = "1.2.0"
 
 -- Level-2 section identifiers whose level-3 headings are exercises.
 local SECTION_KINDS = {
@@ -29,6 +38,8 @@ local SECTION_KINDS = {
 local function fail(message)
   error("exercise-labels: " .. message, 0)
 end
+
+local PRINT_STARTS = { page = true, verso = true, recto = true }
 
 local function has_class(element, class_name)
   if element.classes == nil then
@@ -132,14 +143,21 @@ local function read_options(meta)
     fail("max-level must be an integer from 1 through 6")
   end
 
+  local audience = meta_text(meta["exercise-audience"], ""):lower()
+  if audience ~= "" and audience ~= "student" and audience ~= "answers" then
+    fail("exercise-audience must be student or answers, got " .. audience)
+  end
+
   local separator = meta_value(block, "separator")
   return {
+    audience = audience,
     hierarchical = numbering == "hierarchical",
     prefix = meta_text(meta_value(block, "prefix"), ""),
     letters = {
       Q = meta_text(meta_value(block, "question"), "Q"),
       M = meta_text(meta_value(block, "choice"), "M"),
     },
+    suffix = meta_text(meta_value(block, "suffix"), ""),
     separator = separator ~= nil and pandoc.utils.stringify(separator) or "",
     group_label = meta_value(block, "group-label") ~= nil
       and pandoc.utils.stringify(meta_value(block, "group-label")) or "Exercise",
@@ -217,32 +235,80 @@ local function has_label(header)
   return false
 end
 
--- An exercise include moves its headings so the first sits at target-level.
-local function shift_include(div)
+-- Print placement belongs to the host page, not the reusable question source.
+local function take_print_start(element)
+  local value = element.attributes["print-start"]
+  element.attributes["print-start"] = nil
+  if value ~= nil and not PRINT_STARTS[value] then
+    fail("print-start must be page, verso or recto, got " .. tostring(value))
+  end
+  return value
+end
+
+local function include_target(div)
   local raw = div.attributes["target-level"]
   local target = tonumber(raw or "3")
   if target == nil or target < 1 or target > 6 or target % 1 ~= 0 then
     fail("target-level must be an integer from 1 through 6, got " .. tostring(raw))
   end
   div.attributes["target-level"] = nil
+  return target
+end
 
-  local first_level = nil
-  pandoc.walk_block(div, {
+-- Move a block's headings so its first heading sits at target.
+local function shift_headings(block, target)
+  local shift = nil
+  return pandoc.walk_block(block, {
     Header = function(header)
-      if first_level == nil then
-        first_level = header.level
-      end
-    end,
-  })
-  if first_level == nil or first_level == target then
-    return div
-  end
-
-  local shift = target - first_level
-  return pandoc.walk_block(div, {
-    Header = function(header)
+      shift = shift or (target - header.level)
       header.level = math.max(1, math.min(6, header.level + shift))
       return header
+    end,
+  })
+end
+
+-- A note callout marked .question-aside belongs to the question, so a student
+-- page keeps it; a title that names an answer never opts out.
+local function public_aside(div)
+  if not has_class(div, "question-aside") then
+    return false
+  end
+  local title = pandoc.utils.stringify(div.attributes["title"] or ""):lower()
+  for _, reserved in ipairs({ "solution", "answer", "rubric", "marking" }) do
+    if title:find(reserved, 1, true) then
+      return false
+    end
+  end
+  return true
+end
+
+-- A student page drops note callouts and .correct markers; an answer page
+-- starts every note callout collapsed. Without an audience nothing changes.
+local function apply_audience(block, audience)
+  if audience == "" then
+    return block
+  end
+  local student = audience == "student"
+  return pandoc.walk_block(block, {
+    Div = function(div)
+      if has_class(div, "callout-note") then
+        if public_aside(div) then
+          return div
+        end
+        if student then
+          return {}
+        end
+        div.attributes["collapse"] = "true"
+        return div
+      end
+      if student and has_class(div, "correct") then
+        return div.content
+      end
+    end,
+    Span = function(span)
+      if student and has_class(span, "correct") then
+        return span.content
+      end
     end,
   })
 end
@@ -311,13 +377,16 @@ local function label_document(doc, options)
     header.content = content
   end
 
-  local function mark_exercise(header, kind, keep_level)
+  local function mark_exercise(header, kind, keep_level, fixed_label)
     if has_label(header) then
       return header
     end
 
     local grouped = options.hierarchical and current_group ~= nil
     local exercise_id = next_exercise_id(kind)
+    if fixed_label ~= nil then
+      exercise_id = fixed_label
+    end
     ensure_anchor(header, exercise_id)
 
     if not keep_level and not options.hierarchical then
@@ -326,16 +395,22 @@ local function label_document(doc, options)
 
     add_class(header, "exercise-heading")
     add_class(header, "exercise")
+    add_class(header, kind == "M" and "mcq-question" or "open-question")
     if grouped then
       add_class(header, "unlisted")
     else
       remove_class(header, "unlisted")
     end
-    header.attributes["data-exercise-id"] = exercise_id
     header.attributes["data-exercise-kind"] = kind
+    -- An empty fixed label is a question on its own page, with no number.
+    if exercise_id == "" then
+      header.attributes["data-generated-anchor"] = nil
+      return header
+    end
+    header.attributes["data-exercise-id"] = exercise_id
 
     prepend(header, pandoc.Span(
-      { pandoc.Str(exercise_id) },
+      { pandoc.Str(exercise_id .. options.suffix) },
       pandoc.Attr("", { "exercise-label" }, {
         ["data-exercise-id"] = exercise_id,
         ["data-exercise-type"] = kind,
@@ -365,8 +440,14 @@ local function label_document(doc, options)
     return header
   end
 
+  -- An include hands back plain blocks, not its wrapper: a question that brings
+  -- a setup has two headings, and inside one div a table of contents keeps
+  -- only the last.
   local function label_include(div)
-    div = shift_include(div)
+    local target = include_target(div)
+    local print_start = take_print_start(div)
+    local fixed_label = div.attributes["exercise-label"]
+    div.attributes["exercise-label"] = nil
     local default_kind = contains_class(div, "alpha-list") and "M" or "Q"
     local is_bank = has_class(div, "exercise-bank")
     local first = true
@@ -374,16 +455,19 @@ local function label_document(doc, options)
 
     -- A case-study question starts with its setup, a .exercise-setup block of
     -- shared background: set it aside so the question heading gets the label.
+    -- The setup and the question each move so their first heading sits at
+    -- target-level.
     local setups = pandoc.List()
     local rest = pandoc.List()
     for _, block in ipairs(div.content) do
       if block.t == "Div" and has_class(block, "exercise-setup") then
-        setups:insert(block)
+        setups:insert(shift_headings(block, target))
       else
         rest:insert(block)
       end
     end
     div.content = rest
+    div = apply_audience(shift_headings(div, target), options.audience)
 
     local labelled = pandoc.walk_block(div, {
       Header = function(header)
@@ -404,19 +488,25 @@ local function label_document(doc, options)
         if is_setup_heading(header) then
           return header
         end
+        if print_start ~= nil then
+          header.attributes["data-print-start"] = print_start
+        end
         -- An included file with an answer list is multiple choice, whatever its id says.
-        return mark_exercise(header, marked_kind(header) or default_kind, true)
+        return mark_exercise(header, marked_kind(header) or default_kind, true, fixed_label)
       end,
     })
     setups:extend(labelled.content)
-    labelled.content = setups
-    return labelled
+    return setups
   end
 
   local function walk_blocks(blocks)
     local result = pandoc.Blocks({})
     for _, block in ipairs(blocks) do
       if block.t == "Header" then
+        local print_start = take_print_start(block)
+        if print_start ~= nil then
+          block.attributes["data-print-start"] = print_start
+        end
         if options.hierarchical and current_group_level ~= nil
             and block.level <= current_group_level
             and not has_class(block, "question-group") then
@@ -450,7 +540,7 @@ local function label_document(doc, options)
         end
       elseif block.t == "Div" then
         if has_class(block, "exercise-include") then
-          result:insert(label_include(block))
+          result:extend(label_include(block))
         else
           block.content = walk_blocks(block.content)
           result:insert(block)

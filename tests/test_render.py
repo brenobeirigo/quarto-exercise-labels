@@ -17,6 +17,9 @@ from html.parser import HTMLParser
 REPOSITORY = Path(__file__).resolve().parents[1]
 FILTER = REPOSITORY / "_extensions" / "exercise-labels" / "exercise-labels.lua"
 QUARTO = shutil.which("quarto")
+# Words that appear only in the test solution and in the test aside.
+SOLUTION_WORD = '"c":"2."'
+ASIDE_WORD = '"c":"table."'
 
 
 def inline_text(inlines):
@@ -201,6 +204,111 @@ class ExerciseLabelTests(unittest.TestCase):
         self.assertEqual(found["exr-total"]["label"], "Q1")
         self.assertEqual(found["hint"]["level"], 5)
         self.assertIsNone(found["hint"]["label"])
+
+    MCQ = (
+        "# Pick the total {#sec-mcq-total}\n\n"
+        "::: {.alpha-list}\n"
+        "A) 1\n"
+        "B) [2]{.correct}\n"
+        ":::\n\n"
+        "::: {.callout-note title=\"Solution\"}\n"
+        "The total is 2.\n"
+        ":::\n\n"
+        "::: {.callout-note .question-aside title=\"Data\"}\n"
+        "Read the table.\n"
+        ":::\n"
+    )
+
+    def paper(self, audience=None, attributes='target-level="2"'):
+        front = ""
+        if audience is not None:
+            front = "---\nexercise-audience: " + audience + "\n---\n\n"
+        result = self.run_pandoc(
+            front + "::: {.exercise-include " + attributes + "}\n" + self.MCQ + ":::\n")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return result.stdout
+
+    def test_fixed_label_and_kind_class(self):
+        document = json.loads(self.paper(attributes='target-level="2" exercise-label="Question 1"'))
+        found = {}
+        collect_headings(document["blocks"], found)
+        heading = found["sec-mcq-total"]
+        self.assertEqual(heading["level"], 2)
+        self.assertEqual(heading["label"], "Question 1")
+        self.assertEqual(heading["attributes"]["data-exercise-id"], "Question 1")
+        self.assertIn("mcq-question", heading["classes"])
+        self.assertNotIn("exercise-label", json.dumps(heading["attributes"]))
+        # The include hands back plain blocks, without its wrapper.
+        self.assertNotIn("exercise-include", json.dumps(document["blocks"]))
+
+    def test_suffix_stays_inside_the_label(self):
+        found = self.headings(
+            "---\nexercise-labels:\n  suffix: \")\"\n---\n\n"
+            "# Add {.exercise}\n")
+        self.assertEqual(found["add"]["label"], "Q1)")
+        self.assertEqual(found["add"]["attributes"]["data-exercise-id"], "Q1")
+
+    def test_empty_fixed_label_shows_no_label(self):
+        found = {}
+        collect_headings(json.loads(self.paper(attributes='exercise-label=""'))["blocks"], found)
+        heading = found["sec-mcq-total"]
+        self.assertIsNone(heading["label"])
+        self.assertNotIn("data-exercise-id", heading["attributes"])
+        self.assertIn("mcq-question", heading["classes"])
+
+    def test_print_start_on_include_and_heading(self):
+        result = self.run_pandoc(
+            "# Section {print-start=\"recto\"}\n\n"
+            "::: {.exercise-include print-start=\"verso\"}\n"
+            "# Task {#exr-task}\n"
+            ":::\n")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        found = {}
+        collect_headings(json.loads(result.stdout)["blocks"], found)
+        self.assertEqual(found["section"]["attributes"]["data-print-start"], "recto")
+        self.assertEqual(found["exr-task"]["attributes"]["data-print-start"], "verso")
+        self.assertNotIn('"print-start"', result.stdout)
+
+    def test_invalid_print_start_stops_the_render(self):
+        result = self.run_pandoc(
+            "::: {.exercise-include print-start=\"left\"}\n# Task {#exr-task}\n:::\n")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("print-start must be page, verso or recto", result.stderr)
+
+    def test_without_audience_answers_stay(self):
+        output = self.paper()
+        self.assertIn(SOLUTION_WORD, output)
+        self.assertIn('"correct"', output)
+        self.assertNotIn('"collapse"', output)
+
+    def test_student_audience_drops_answers_and_keeps_asides(self):
+        output = self.paper("student")
+        self.assertNotIn(SOLUTION_WORD, output)
+        self.assertNotIn('"correct"', output)
+        self.assertIn(ASIDE_WORD, output)
+
+    def test_answers_audience_collapses_solutions(self):
+        output = self.paper("answers")
+        self.assertIn(SOLUTION_WORD, output)
+        self.assertIn('"correct"', output)
+        self.assertIn('["collapse","true"]', output)
+
+    def test_unknown_audience_stops_the_render(self):
+        result = self.run_pandoc("---\nexercise-audience: teacher\n---\n\n# Q {.exercise}\n")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("exercise-audience must be student or answers", result.stderr)
+
+    def test_setup_and_question_each_reach_target_level(self):
+        found = self.headings(
+            '::: {.exercise-include target-level="2"}\n'
+            '::: {.exercise-setup setup="case"}\n'
+            "### Case background {#sec-setup-case}\n"
+            ":::\n\n"
+            "# Process the data {#exr-process}\n"
+            ":::\n")
+        self.assertEqual(found["sec-setup-case"]["level"], 2)
+        self.assertEqual(found["exr-process"]["level"], 2)
+        self.assertEqual(found["exr-process"]["label"], "Q1")
 
     def test_setup_include_is_not_labelled(self):
         found = self.headings(
