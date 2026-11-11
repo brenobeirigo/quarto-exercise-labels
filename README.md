@@ -218,9 +218,11 @@ quarto render example-exam.qmd -M exercise-audience:answers -M exam-version:B
 |---|---|
 | ![Version A of the example exam](images/exam-version-A.png) | ![Version B of the example exam](images/exam-version-B.png) |
 
-Every Solution in the example is only its `.alpha-explanations` list. There is
-no separate "**Answer:** C" line: the explanation marked `.correct` is the
-answer, and it moves with its option, so no letter can go stale.
+To keep the screenshots short, each Solution in the example shows only its
+Alternative checks; a full Solution also has an Explanation (see
+[Solutions](#solutions)). There is no "**Answer:** C" line: the check marked
+`.correct` is the answer, and it moves with its option, so no letter can go
+stale.
 
 What changed in version B:
 
@@ -269,21 +271,47 @@ Every letter keeps exactly the panels it named before, in the same order: if A
 named "(a) and (b)", the option at A still names "(a) and (b)". A letter the
 question cannot reach that way is not used for it.
 
-### Explanations
+### Solutions
 
-Write the explanations like the options: the same lettered list, one per
-option in option order, with `.correct` on the correct option's explanation.
+Each question has one Solution callout, after the question and all its
+panels. It has two parts, always in this order and with these headings:
 
 ```markdown
+::: {.callout-note title="Solution"}
+
+**Explanation**
+
+The worked answer, from the question's own code, data or panels: a trace,
+a rule, a table or a derivation. Test code goes at its end.
+
+**Alternative checks**
+
 ::: {.alpha-explanations}
 A) Counts all 100 inner passes in `P2`.
 B) Lets `P1` continue from the `c2` of `P2`.
-C) [Resets `c2` at each outer pass.]{.correct}
+C) [Gives this output.]{.correct}
 D) Adds the two local counters.
+:::
+
 :::
 ```
 
-The list follows its options and Pandoc letters it. A bullet list in the block
+- **Explanation** reaches the answer without judging the options.
+- **Alternative checks** is the same lettered list as the options, one item
+  per option in option order, with `.correct` on the correct option's item.
+  It is always the last block in the callout.
+- Each option is checked once. A wrong option's item names the step or value
+  that fails. The correct option's item is a short verdict, because the
+  Explanation already gives the reasons.
+- When each option is one listing or figure, the panel verdicts are the
+  checks, and the Explanation says what a correct version must do.
+- When options pair panels ("(a) and (b)"), the Explanation judges each panel
+  once, and each check names the panel that makes its option wrong
+  ("Includes @lst-sum-b.").
+- No option is named by letter, and there is no "**Answer:**" line: the item
+  marked `.correct` is the answer.
+
+The checks follow their options in every version, and Pandoc letters them. A bullet list in the block
 gets bold **A.** to **D.** labels. Without the block, a Solution's list of four
 bullets labelled `**A.**` to `**D.**` follows too, and a first word that
 repeats each bullet's own letter ("**A.** A counts") changes only when all
