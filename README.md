@@ -215,21 +215,22 @@ student and answer renders always agree.
   lines of one listing keep their order.
 - The new key changes every other answer, keeps the A to D totals balanced and
   avoids the same letter on consecutive questions.
-- Enclose the explanations like the options, one per option in option order.
-  They follow their options, and the filter writes the bold **A.** to **D.**
-  labels in every build:
+- Enclose the explanations like the options: the same lettered list, one
+  explanation per option in option order, with `.correct` on the correct
+  option's explanation. The list follows its options, and Pandoc letters it:
 
   ```markdown
   ::: {.alpha-explanations}
-  - Counts all 100 inner passes in `P2`.
-  - Lets `P1` continue from the `c2` of `P2`.
-  - Resets `c2` at each outer pass.
-  - Adds the two local counters.
+  A) Counts all 100 inner passes in `P2`.
+  B) Lets `P1` continue from the `c2` of `P2`.
+  C) [Resets `c2` at each outer pass.]{.correct}
+  D) Adds the two local counters.
   :::
   ```
 
-  Explanation bullets written as `- **A.** ...` also follow their options. In
-  both forms, a first word that repeats the option's letter, as in
+  A bullet list in the block gets bold **A.** to **D.** labels instead, and
+  explanation bullets written as `- **A.** ...` outside a block also follow
+  their options. A first word that repeats the option's letter, as in
   "A counts ...", changes with it.
 - A question whose Solution names options by letter in another way, such as
   `Option A`, `**Answer:** A`, `A) ...` or "the same mistake as A", keeps its

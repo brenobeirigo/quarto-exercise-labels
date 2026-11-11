@@ -17,12 +17,16 @@
 -- Explanations enclosed like the options follow them exactly:
 --
 --   ::: {.alpha-explanations}
---   - Counts all 100 inner passes ...
---   - ...
+--   A) Counts all 100 inner passes ...
+--   B) ...
+--   C) [Resets c2 at each outer pass ...]{.correct}
+--   D) ...
 --   :::
 --
--- The list holds one explanation per option, in option order. The filter writes
--- the bold **A.** to **D.** labels in every build, with or without a version.
+-- The lettered list holds one explanation per option, in option order, and
+-- the correct option's explanation can carry `.correct` like the option.
+-- Pandoc letters the list, so its letters follow the rotation. A bullet list
+-- in the block gets bold **A.** to **D.** labels instead.
 --
 -- The new letters change every movable answer, keep the A to D totals of the
 -- paper balanced and avoid the same letter on consecutive questions where
@@ -352,7 +356,11 @@ local function rotate_explanations(div, shift)
         end
         rotated[new] = item
       end
-      content[k] = pandoc.BulletList(rotated)
+      if block.t == "OrderedList" then
+        content[k] = pandoc.OrderedList(rotated, block.listAttributes)
+      else
+        content[k] = pandoc.BulletList(rotated)
+      end
       break
     end
   end
@@ -360,14 +368,16 @@ local function rotate_explanations(div, shift)
   return div
 end
 
--- Write **A.** to **D.** in front of enclosed explanations.
+-- Write **A.** to **D.** in front of enclosed bullet explanations; a lettered
+-- list is already labelled by Pandoc.
 local function label_explanations(doc)
   return doc:walk({
     Div = function(div)
       if not has_class(div, "alpha-explanations") then return nil end
       local content = pandoc.Blocks(div.content)
       for k, block in ipairs(content) do
-        if block.t == "BulletList" or block.t == "OrderedList" then
+        if block.t == "OrderedList" then break end
+        if block.t == "BulletList" then
           local items = {}
           for i, item in ipairs(block.content) do
             local first = item[1]

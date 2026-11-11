@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.0
+
+- `.alpha-explanations` takes the same lettered list as `.alpha-list`, with
+  `.correct` on the correct option's explanation. The list rotates with its
+  options and Pandoc letters it; a bullet list still gets bold labels.
+
 ## 1.5.0
 
 - `::: {.alpha-explanations}` encloses one explanation per option, in option

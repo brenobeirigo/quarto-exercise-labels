@@ -215,6 +215,39 @@ class ExamVersionTests(unittest.TestCase):
             moved += panels != ["a", "b", "c", "d"]
         self.assertGreaterEqual(moved, 2)
 
+    def test_lettered_explanations_follow_their_options(self):
+        def lettered(number, correct):
+            options = "\n".join(
+                f"{L}) [option {number}{L.lower()}]{{.correct}}" if L == correct
+                else f"{L}) option {number}{L.lower()}" for L in "ABCD")
+            notes = "\n".join(
+                f"{L}) [note {number}{L.lower()}.]{{.correct}}" if L == correct
+                else f"{L}) note {number}{L.lower()}." for L in "ABCD")
+            return (f"## Question {number}\n\n::: {{.alpha-list}}\n{options}\n:::\n\n"
+                    f"::: {{.callout-note title=\"Solution\"}}\n::: {{.alpha-explanations}}\n"
+                    f"{notes}\n:::\n:::\n\n")
+        body = "".join(lettered(n, "ABCD"[n % 4]) for n in range(1, 9))
+        plain = self.render({}, body=body)
+        # Without a version the lettered list stays as written, with no bold labels.
+        self.assertNotIn("**A.**", plain.stdout)
+        result = self.render({"exam-version": "B"}, body=body)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("keeps its order", result.stderr)
+        moved = 0
+        for number in range(1, 9):
+            block = result.stdout[result.stdout.index(f"## Question {number}\n"):]
+            if f"## Question {number + 1}\n" in block:
+                block = block[:block.index(f"## Question {number + 1}\n")]
+            options = re.findall(rf"option {number}([a-d])", block)
+            notes = re.findall(rf"note {number}([a-d])", block)
+            self.assertEqual(notes, options)
+            # The correct mark sits on the same letter in both lists.
+            marked = re.findall(rf"^([A-D])\)\s+\[(?:option|note) {number}", block, re.M)
+            self.assertEqual(len(marked), 2)
+            self.assertEqual(marked[0], marked[1])
+            moved += options != ["a", "b", "c", "d"]
+        self.assertGreaterEqual(moved, 6)
+
     def test_invalid_label_stops_the_render(self):
         result = self.render({"exam-version": '"B C"'})
         self.assertNotEqual(result.returncode, 0)
