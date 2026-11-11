@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.0
+
+- `::: {.alpha-explanations}` encloses one explanation per option, in option
+  order. The explanations follow their options in every version, and the
+  filter writes their **A.** to **D.** labels.
+- Options that cite several panels move too: the panels rotate by the options'
+  step, so paired options keep A (a) and (b), B (b) and (c), and so on.
+- "explained in C" and "the error in B" count as naming an option.
+
 ## 1.4.0
 
 - Panel questions move too: when each option cites one panel of a single

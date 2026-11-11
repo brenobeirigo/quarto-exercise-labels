@@ -5,12 +5,24 @@
 -- with `A`, the paper stays as written.
 --
 -- A question is an `.alpha-list` whose list (`A) ...` or `- ...`) has four
--- options and one `.correct` marker. Its options rotate together, so the correct option lands on
--- its new letter and the A to D labels stay in order. When each option cites
--- one panel (@lst-, @fig-, @tbl-) and the four panels are the blocks of one
--- parent, such as `::: {#lst-x layout-ncol="2"}`, the panels rotate with their
--- options, so option A still shows panel (a). Other panel questions, such as
--- options that pair two listings, keep their order.
+-- options and one `.correct` marker. Its options rotate together, so the
+-- correct option lands on its new letter and the A to D labels stay in order.
+-- When the options cite
+-- panels (@lst-, @fig-, @tbl-) and the four cited panels are the blocks of one
+-- parent, such as `::: {#lst-x layout-ncol="2"}`, the panels rotate by the same
+-- step, so every option keeps its panels: "(a)" stays with A, and an option
+-- citing "(a) and (b)" at A still cites "(a) and (b)". Other panel questions,
+-- such as options that point at lines of one listing, keep their order.
+--
+-- Explanations enclosed like the options follow them exactly:
+--
+--   ::: {.alpha-explanations}
+--   - Counts all 100 inner passes ...
+--   - ...
+--   :::
+--
+-- The list holds one explanation per option, in option order. The filter writes
+-- the bold **A.** to **D.** labels in every build, with or without a version.
 --
 -- The new letters change every movable answer, keep the A to D totals of the
 -- paper balanced and avoid the same letter on consecutive questions where
@@ -128,6 +140,10 @@ end
 local REFERRING = { option = true, options = true, alternative = true, choice = true,
   as = true, than = true, like = true, unlike = true, from = true }
 
+-- "explained in C", "the error in B": "in" marks an option only after these.
+local BEFORE_IN = { explained = true, described = true, shown = true, discussed = true,
+  error = true, errors = true, mistake = true, mistakes = true }
+
 -- True when a Solution names an option by letter in a way the bullets cannot
 -- carry along: "Option A", "**Answer:** A", a line starting with "B)" or "C",
 -- or "as A". Data such as "the C band", "A, D, 1, C" or "in column B" does not
@@ -135,37 +151,64 @@ local REFERRING = { option = true, options = true, alternative = true, choice = 
 -- opening article "A" ("A temporary variable") is read as a word.
 local function names_letters(callout)
   local found = false
-  local function scan(inlines)
+  -- own: the letter of the option this text explains, when known.
+  local function scan(inlines, own)
     local start = 1
-    local label = nil
     if inlines[1] and inlines[1].t == "Strong" then
-      label = pandoc.utils.stringify(inlines[1]):match("^([A-D])%.$")
+      own = pandoc.utils.stringify(inlines[1]):match("^([A-D])%.$") or own
+      if own then start = 3 end
     end
-    if label then
-      start = 3
-      if letter_token(inlines[3]) == label then start = 5 end
+    if own then
+      if letter_token(inlines[start]) == own then start = start + 2 end
     else
       local first = inlines[1]
       if first and first.t == "Str" and (first.text:match("^[A-D][.)]$")
           or first.text:match("^[B-D]%p*$")) then found = true end
     end
     for k = start, #inlines do
-      local inline = inlines[k]
-      if letter_token(inline) and k > 2 and inlines[k - 1].t == "Space" then
+      if letter_token(inlines[k]) and k > 2 and inlines[k - 1].t == "Space" then
         local before = inlines[k - 2]
         if before.t == "Str" and REFERRING[before.text:lower()] then found = true end
+        if before.t == "Str" and before.text:lower() == "in" and k > 4
+            and inlines[k - 4].t == "Str" and BEFORE_IN[inlines[k - 4].text:lower()] then
+          found = true
+        end
         if before.t == "Strong" and pandoc.utils.stringify(before):match("^Answer") then found = true end
       end
     end
   end
-  pandoc.walk_block(callout, {
-    -- "* A) No trimming ...": Pandoc reads the letters as a lettered list.
-    OrderedList = function(list)
-      if list.listAttributes.style == "UpperAlpha" then found = true end
-    end,
-    Para = function(block) scan(block.content) end,
-    Plain = function(block) scan(block.content) end,
-  })
+  local visit
+  local function visit_item(item, own)
+    for n, block in ipairs(item) do
+      if n == 1 and (block.t == "Para" or block.t == "Plain") then
+        scan(block.content, own)
+      else
+        visit({ block })
+      end
+    end
+  end
+  visit = function(blocks)
+    for _, block in ipairs(blocks) do
+      if block.t == "Para" or block.t == "Plain" then
+        scan(block.content, nil)
+      elseif block.t == "Div" and has_class(block, "alpha-explanations") then
+        for _, inner in ipairs(block.content) do
+          if inner.t == "BulletList" or inner.t == "OrderedList" then
+            for i, item in ipairs(inner.content) do visit_item(item, LETTERS[i]) end
+          end
+        end
+      elseif block.t == "OrderedList" then
+        -- "* A) No trimming ...": Pandoc reads the letters as a lettered list.
+        if block.listAttributes.style == "UpperAlpha" then found = true end
+        for _, item in ipairs(block.content) do visit_item(item, nil) end
+      elseif block.t == "BulletList" then
+        for _, item in ipairs(block.content) do visit_item(item, nil) end
+      elseif block.t == "Div" or block.t == "BlockQuote" then
+        visit(block.content)
+      end
+    end
+  end
+  visit(callout.content)
   return found
 end
 
@@ -292,6 +335,60 @@ local function relabel_bullets(list, shift)
   return list
 end
 
+-- Rotate an enclosed explanation list by shift; a first word that is the
+-- item's own letter ("A counts ...") changes with it.
+local function rotate_explanations(div, shift)
+  local content = pandoc.Blocks(div.content)
+  for k, block in ipairs(content) do
+    if (block.t == "BulletList" or block.t == "OrderedList") and #block.content == 4 then
+      local rotated = {}
+      for i, item in ipairs(block.content) do
+        local new = (i - 1 + shift) % 4 + 1
+        local first = item[1]
+        if first and (first.t == "Para" or first.t == "Plain") then
+          local word, rest = (first.content[1] and first.content[1].t == "Str"
+            and first.content[1].text or ""):match("^([A-D])(%p*)$")
+          if word == LETTERS[i] then first.content[1] = pandoc.Str(LETTERS[new] .. rest) end
+        end
+        rotated[new] = item
+      end
+      content[k] = pandoc.BulletList(rotated)
+      break
+    end
+  end
+  div.content = content
+  return div
+end
+
+-- Write **A.** to **D.** in front of enclosed explanations.
+local function label_explanations(doc)
+  return doc:walk({
+    Div = function(div)
+      if not has_class(div, "alpha-explanations") then return nil end
+      local content = pandoc.Blocks(div.content)
+      for k, block in ipairs(content) do
+        if block.t == "BulletList" or block.t == "OrderedList" then
+          local items = {}
+          for i, item in ipairs(block.content) do
+            local first = item[1]
+            if first and (first.t == "Para" or first.t == "Plain") then
+              local inlines = pandoc.Inlines({ pandoc.Strong({ pandoc.Str((LETTERS[i] or "?") .. ".") }),
+                pandoc.Space() })
+              inlines:extend(first.content)
+              first.content = inlines
+            end
+            items[i] = item
+          end
+          content[k] = pandoc.BulletList(items)
+          break
+        end
+      end
+      div.content = content
+      return div
+    end,
+  })
+end
+
 local function audience(meta)
   local value = meta["exercise-audience"]
   return value and pandoc.utils.stringify(value):lower() or ""
@@ -299,7 +396,7 @@ end
 
 function Pandoc(doc)
   local value = doc.meta["exam-version"]
-  if value == nil then return nil end
+  if value == nil then return label_explanations(doc) end
   local label = pandoc.utils.stringify(value)
   if not label:match("^[%w%-]+$") then
     fail("exam-version must be a short label such as B, got " .. label)
@@ -313,7 +410,7 @@ function Pandoc(doc)
     traverse = "topdown",
     Div = function(div)
       local children = panel_children(div)
-      if #children == 4 then parents[id_set(children)] = true end
+      if #children == 4 then parents[id_set(children)] = children end
       if has_class(div, "alpha-list") then
         position = position + 1
         local question = read_question(div)
@@ -335,22 +432,34 @@ function Pandoc(doc)
   })
   if #questions == 0 then
     warn("no .alpha-list question with one .correct option was found")
-    return nil
+    return label_explanations(doc)
   end
 
-  -- A panel question moves when each option cites one panel and its four panels
-  -- are the only identified blocks of one parent.
+  -- A panel question moves when every option cites panels and the four cited
+  -- panels are the only identified blocks of one parent.
   local panel_sets = {}
   for _, question in ipairs(questions) do
     if question.panel and not question.pinned then
-      local ids = {}
+      local ids, seen, every = {}, {}, true
       for i = 1, 4 do
-        if #question.cites[i] == 1 then ids[#ids + 1] = question.cites[i][1] end
+        if #question.cites[i] == 0 then every = false end
+        for _, id in ipairs(question.cites[i]) do
+          if not seen[id] then seen[id] = true; ids[#ids + 1] = id end
+        end
       end
-      if #ids == 4 and parents[id_set(ids)] then
+      local children = every and #ids == 4 and parents[id_set(ids)] or nil
+      if children then
         question.movable = true
-        question.panels = ids
         panel_sets[id_set(ids)] = question
+        -- Each option's panels by slot, in the order the option names them.
+        local slot_of = {}
+        for s, id in ipairs(children) do slot_of[id] = s end
+        question.children = children
+        question.slots = {}
+        for i = 1, 4 do
+          question.slots[i] = {}
+          for k, id in ipairs(question.cites[i]) do question.slots[i][k] = slot_of[id] end
+        end
       end
     end
   end
@@ -370,21 +479,24 @@ function Pandoc(doc)
   doc = doc:walk({
     traverse = "topdown",
     Div = function(div)
+      if has_class(div, "alpha-explanations") then
+        if current == 0 or shift == 0 then return nil end
+        return rotate_explanations(div, shift)
+      end
       if not has_class(div, "alpha-list") then
         local children = panel_children(div)
         local question = #children == 4 and panel_sets[id_set(children)] or nil
         if question == nil or question.shift == 0 then return nil end
-        -- Slot p shows the panel that the option now at letter p cites.
-        local by_id = {}
+        -- The panels rotate by the options' step, so each option keeps its panels.
+        local panels = {}
         for _, block in ipairs(div.content) do
-          local id = panel_id(block)
-          if id then by_id[id] = block end
+          if panel_id(block) then panels[#panels + 1] = block end
         end
         local content, slot = pandoc.Blocks({}), 0
         for _, block in ipairs(div.content) do
           if panel_id(block) then
             slot = slot + 1
-            content:insert(by_id[question.panels[(slot - 1 - question.shift) % 4 + 1]])
+            content:insert(panels[(slot - 1 - question.shift) % 4 + 1])
           else
             content:insert(block)
           end
@@ -403,6 +515,32 @@ function Pandoc(doc)
           local rotated = {}
           for i, item in ipairs(block.content) do
             rotated[(i - 1 + shift) % 4 + 1] = item
+          end
+          if question.children then
+            -- The option at letter p names its panels in the slot order that
+            -- option p used, so "(a) and (b)" never reads "(b) and (a)".
+            for position = 1, 4 do
+              local wanted = {}
+              for k, slot in ipairs(question.slots[position]) do
+                wanted[k] = question.children[(slot - 1 - shift) % 4 + 1]
+              end
+              local by_id, count = {}, 0
+              pandoc.walk_block(pandoc.Div(rotated[position]), {
+                Cite = function(cite)
+                  count = count + 1
+                  by_id[cite.citations[1].id] = cite
+                end,
+              })
+              if count == #wanted then
+                local k = 0
+                rotated[position] = pandoc.walk_block(pandoc.Div(rotated[position]), {
+                  Cite = function()
+                    k = k + 1
+                    return by_id[wanted[k]]
+                  end,
+                }).content
+              end
+            end
           end
           if block.t == "OrderedList" then
             content[k] = pandoc.OrderedList(rotated, block.listAttributes)
@@ -446,5 +584,5 @@ function Pandoc(doc)
     doc.blocks:insert(pandoc.Div({ pandoc.Para(entries) },
       pandoc.Attr("exam-version-key", { "exam-version-key" })))
   end
-  return doc
+  return label_explanations(doc)
 end

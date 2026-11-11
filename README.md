@@ -207,17 +207,30 @@ student and answer renders always agree.
   options and one `.correct` marker. Its options rotate together, so the
   correct one lands on its new letter. Other answer lists keep their order and
   the render reports them.
-- When each option cites one listing, figure or table (`@lst-`, `@fig-`,
-  `@tbl-`) and the four panels are the blocks of one parent, such as
-  `::: {#lst-x layout-ncol="2"}` with four identified blocks, figures or
-  tables, the panels rotate with their options, so
-  option A still shows panel (a). Other panel questions, such as options that
-  pair two listings, keep their order.
+- When the options cite listings, figures or tables (`@lst-`, `@fig-`,
+  `@tbl-`) and the four cited panels are the blocks of one parent, such as
+  `::: {#lst-x layout-ncol="2"}`, the panels rotate by the same step. Every
+  option keeps its panels: (a) stays with A, and options that pair panels keep
+  the pattern A (a) and (b), B (b) and (c), and so on. Options that point at
+  lines of one listing keep their order.
 - The new key changes every other answer, keeps the A to D totals balanced and
   avoids the same letter on consecutive questions.
-- Explanation bullets written as `- **A.** ...` follow their options. A first
-  word that repeats the bullet's letter, as in `**A.** A counts ...`, changes
-  with it.
+- Enclose the explanations like the options, one per option in option order.
+  They follow their options, and the filter writes the bold **A.** to **D.**
+  labels in every build:
+
+  ```markdown
+  ::: {.alpha-explanations}
+  - Counts all 100 inner passes in `P2`.
+  - Lets `P1` continue from the `c2` of `P2`.
+  - Resets `c2` at each outer pass.
+  - Adds the two local counters.
+  :::
+  ```
+
+  Explanation bullets written as `- **A.** ...` also follow their options. In
+  both forms, a first word that repeats the option's letter, as in
+  "A counts ...", changes with it.
 - A question whose Solution names options by letter in another way, such as
   `Option A`, `**Answer:** A`, `A) ...` or "the same mistake as A", keeps its
   order, so its explanation stays true, and the render reports it. Describe the

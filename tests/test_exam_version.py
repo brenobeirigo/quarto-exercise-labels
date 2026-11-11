@@ -155,6 +155,66 @@ class ExamVersionTests(unittest.TestCase):
         # The key counts every answer list, so question 2 keeps its number.
         self.assertRegex(result.stdout, r"Key, version B:\*\* 2\u00a0[A-D]")
 
+    @staticmethod
+    def enclosed(number, correct):
+        options = "\n".join(
+            f"{L}) [option {number}{L.lower()}]{{.correct}}" if L == correct
+            else f"{L}) option {number}{L.lower()}" for L in "ABCD")
+        notes = "\n".join(f"- {L} explains {number}{L.lower()}." for L in "ABCD")
+        return (f"## Question {number}\n\n::: {{.alpha-list}}\n{options}\n:::\n\n"
+                f"::: {{.callout-note title=\"Solution\"}}\n::: {{.alpha-explanations}}\n"
+                f"{notes}\n:::\n:::\n\n")
+
+    def test_enclosed_explanations_are_labelled_without_a_version(self):
+        result = self.render({}, body=self.enclosed(1, "B"))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for letter in "ABCD":
+            self.assertIn(f"**{letter}.** {letter} explains 1{letter.lower()}.", result.stdout)
+
+    def test_enclosed_explanations_follow_their_options(self):
+        body = "".join(self.enclosed(n, "ABCD"[n % 4]) for n in range(1, 9))
+        result = self.render({"exam-version": "B"}, body=body)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("keeps its order", result.stderr)
+        moved = 0
+        for number in range(1, 9):
+            block = result.stdout[result.stdout.index(f"## Question {number}\n"):]
+            block = block[:block.index("## Question", 5)] if "## Question" in block[5:] else block
+            options = re.findall(rf"option {number}([a-d])", block)[:4]
+            notes = re.findall(rf"\*\*([A-D])\.\*\* \1 explains {number}([a-d])", block)
+            self.assertEqual([n[1] for n in notes], options)
+            moved += options != ["a", "b", "c", "d"]
+        self.assertGreaterEqual(moved, 6)
+
+    def test_paired_options_keep_their_panels(self):
+        # Both ways papers write the last pair: "(d) and (a)" and "(a) and (d)".
+        for last in [("d", "a"), ("a", "d")]:
+            with self.subTest(last=last):
+                self.check_pairs([("a", "b"), ("b", "c"), ("c", "d"), last])
+
+    def check_pairs(self, pairs):
+        def paired(number):
+            options = "\n".join(
+                (f"{L}) [@lst-p{number}-{x} and @lst-p{number}-{y}]{{.correct}}" if L == "A"
+                 else f"{L}) @lst-p{number}-{x} and @lst-p{number}-{y}")
+                for L, (x, y) in zip("ABCD", pairs))
+            panels = "\n".join(f"::: {{#lst-p{number}-{x}}}\npanel {number}{x}\n:::" for x in "abcd")
+            return (f"## Question {number}\n\n::: {{.alpha-list}}\n{options}\n:::\n\n"
+                    f":::: {{#lst-p{number} layout-ncol=\"2\"}}\n{panels}\nCaption.\n::::\n\n")
+        body = "".join(paired(n) for n in range(1, 5))
+        result = self.render({"exam-version": "B"}, body=body)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        moved = 0
+        for number in range(1, 5):
+            block = result.stdout[result.stdout.index(f"## Question {number}\n"):]
+            options = re.findall(rf"@lst-p{number}-([a-d]) and @lst-p{number}-([a-d])", block)[:4]
+            panels = re.findall(rf"panel {number}([a-d])\n", block)[:4]
+            # Slot letters: each option still names the same slots, in the same order.
+            slots = {panel: "abcd"[i] for i, panel in enumerate(panels)}
+            self.assertEqual([(slots[x], slots[y]) for x, y in options], pairs)
+            moved += panels != ["a", "b", "c", "d"]
+        self.assertGreaterEqual(moved, 2)
+
     def test_invalid_label_stops_the_render(self):
         result = self.render({"exam-version": '"B C"'})
         self.assertNotEqual(result.returncode, 0)
