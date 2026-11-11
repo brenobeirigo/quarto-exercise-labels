@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.0
+
+- `-M exam-version:B` renders a paper with a new balanced answer key: the
+  options of plain-text questions rotate, panel questions keep their order,
+  explanation bullets follow their options, the subtitle names the version and
+  answer builds end with the key.
+
 ## 1.2.0
 
 - The filter runs at the `pre-ast` stage, so it sees callouts as ordinary divs.

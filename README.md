@@ -189,6 +189,36 @@ The [Lucid theme](https://brenobeirigo.github.io/quarto-extensions/lucid.html) a
 adds a copy-reference button to each label and retitles a callout written as
 `title="Solution [-@exr-id]"` to "Solution to Q1".
 
+## Exam versions
+
+A multiple-choice paper gets a new answer key from the same sources with one
+flag. Nothing in the questions changes:
+
+```bash
+quarto render exam.qmd --profile questions -M exam-version:B
+quarto render exam.qmd --profile answers -M exam-version:B
+```
+
+Without `exam-version`, or with `A`, the paper renders as written. Any other
+label, such as `B` or `C`, gives its own key, the same every time, so the
+student and answer renders always agree.
+
+- A question is an `.alpha-list` with four options and one `.correct` marker.
+  Its options rotate together, so the correct one lands on its new letter.
+- A question whose options cite a listing, figure or table (`@lst-`, `@fig-`,
+  `@tbl-`) keeps its order, so option A still points at panel (a).
+- The new key changes every other answer, keeps the A to D totals balanced and
+  avoids the same letter on consecutive questions.
+- Explanation bullets written as `- **A.** ...` follow their options. A first
+  word that repeats the bullet's letter, as in `**A.** A counts ...`, changes
+  with it. Describe other options instead of naming their letters; the render
+  warns when an explanation names one.
+- The subtitle gets "Version B", and an answer build
+  (`exercise-audience: answers`) ends with the version's key.
+
+The filter comes with the extension and runs before `exercise-labels`. A
+project that loads the filters by path lists `exam-version.lua` first.
+
 ## Neutral answer ids
 
 Questions often name their alternatives in identifiers, such as

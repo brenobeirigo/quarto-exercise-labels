@@ -26,7 +26,7 @@
 --   exercise-label        fixed label text, such as "Question 1"; "" shows none
 --   print-start           page, verso or recto, recorded as data-print-start
 
-local VERSION = "1.2.0"
+local VERSION = "1.3.0"
 
 -- Level-2 section identifiers whose level-3 headings are exercises.
 local SECTION_KINDS = {
