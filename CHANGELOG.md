@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.4.0
+
+- Panel questions move too: when each option cites one panel of a single
+  parent block, the panels rotate with their options, so A still shows (a).
+- Options written as a bullet list inside `.alpha-list` rotate too, and the
+  key is numbered by each answer list's position on the page.
+- The version label is opt-in: `exam-version-label: true` adds "Version B" to
+  the subtitle, and by default the paper names no version.
+- A question whose Solution names options by letter in a way the bullets
+  cannot carry along keeps its order and is reported, instead of a warning
+  about an explanation that would no longer match.
+
 ## 1.3.0
 
 - `-M exam-version:B` renders a paper with a new balanced answer key: the

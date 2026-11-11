@@ -62,6 +62,12 @@ class ExamVersionTests(unittest.TestCase):
                 self.assertNotEqual(new, old, f"question {number} kept its letter")
         self.assertEqual({letter: key.count(letter) for letter in "ABCD"},
                          {"A": 3, "B": 3, "C": 3, "D": 3})
+        # The paper names no version unless asked to.
+        self.assertNotIn("Version B", result.stdout)
+
+    def test_label_is_written_on_request(self):
+        result = self.render({"exam-version": "B", "exam-version-label": "true"})
+        self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("Version B", result.stdout)
 
     def test_options_rotate_and_bullets_follow(self):
@@ -87,11 +93,67 @@ class ExamVersionTests(unittest.TestCase):
         self.assertIn("Key, version B:", answers)
         self.assertNotIn("Key, version", student)
 
-    def test_explanation_naming_another_option_warns(self):
-        body = question(1, "B").replace("B explains 1b.", "B makes the mistake of A.")
+    def test_explanation_naming_letters_keeps_the_order(self):
+        forms = [
+            ("B explains 1b.", "B makes the same mistake as A."),
+            ("- **A.** A explains 1a.", "Option A explains 1a."),
+            ("- **D.** D explains 1d.", "**Answer:** B."),
+            ("- **C.** C explains 1c.", "- C) explains 1c."),
+        ]
+        for old, new in forms:
+            with self.subTest(form=new):
+                body = question(1, "B").replace(old, new) + question(2, "C")
+                result = self.render({"exam-version": "B"}, body=body)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(self.key(result.stdout)[0], "B")
+                self.assertIn("question 1 keeps its order", result.stderr)
+
+    def test_data_letters_do_not_pin_a_question(self):
+        body = question(1, "B").replace("A explains 1a.", "A puts 70 in the C band.")
+        result = self.render({"exam-version": "B"}, body=body + question(2, "C"))
+        self.assertNotIn("keeps its order", result.stderr)
+        self.assertNotEqual(self.key(result.stdout)[0], "B")
+
+    def test_panels_rotate_with_their_options(self):
+        def panel_question(number):
+            options = "\n".join(
+                f"{L}) [@lst-p{number}-{L.lower()}]{{.correct}}" if L == "A"
+                else f"{L}) @lst-p{number}-{L.lower()}" for L in "ABCD")
+            panels = "\n".join(f"::: {{#lst-p{number}-{L.lower()}}}\npanel {number}{L.lower()}\n:::"
+                               for L in "ABCD")
+            bullets = "\n".join(f"- **{L}.** {L} is panel {number}{L.lower()}." for L in "ABCD")
+            return (f"## Question {number}\n\n::: {{.alpha-list}}\n{options}\n:::\n\n"
+                    f":::: {{#lst-p{number} layout-ncol=\"2\"}}\n{panels}\nCaption.\n::::\n\n"
+                    f"::: {{.callout-note title=\"Solution\"}}\n{bullets}\n:::\n\n")
+        body = "".join(panel_question(n) for n in range(1, 5))
         result = self.render({"exam-version": "B"}, body=body)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("names option A", result.stderr)
+        moved = 0
+        for number in range(1, 5):
+            block = result.stdout[result.stdout.index(f"## Question {number}"):]
+            options = re.findall(rf"@lst-p{number}-([a-d])", block)[:4]
+            panels = re.findall(rf"panel {number}([a-d])\n", block)[:4]
+            bullets = re.findall(rf"\*\*([A-D])\.\*\* \1 is panel {number}([a-d])", block)[:4]
+            # Option A shows panel (a), and each bullet follows its option.
+            self.assertEqual(options, panels)
+            self.assertEqual([b[1] for b in bullets], options)
+            moved += options[0] != "a"
+        self.assertGreaterEqual(moved, 3)
+
+    def test_bullet_options_rotate_and_key_uses_page_numbers(self):
+        bullets = question(2, "A").replace("A) [option 2a]{.correct}", "- [option 2a]{.correct}")
+        for letter in "BCD":
+            bullets = bullets.replace(f"{letter}) option 2{letter.lower()}", f"- option 2{letter.lower()}")
+        odd = "## Question 1\n\n::: {.alpha-list}\nA) one\nB) two\n:::\n\n"
+        body = odd + bullets + question(3, "A") + question(4, "A") + question(5, "A")
+        result = self.render({"exam-version": "B", "exercise-audience": "answers"}, body=body)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("question 1 keeps its order", result.stderr)
+        block = result.stdout[result.stdout.index("## Question 2"):result.stdout.index("## Question 3")]
+        options = re.findall(r"option 2([a-d])", block)[:4]
+        self.assertNotEqual(options[0], "a")
+        # The key counts every answer list, so question 2 keeps its number.
+        self.assertRegex(result.stdout, r"Key, version B:\*\* 2\u00a0[A-D]")
 
     def test_invalid_label_stops_the_render(self):
         result = self.render({"exam-version": '"B C"'})

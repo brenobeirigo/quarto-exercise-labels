@@ -203,18 +203,30 @@ Without `exam-version`, or with `A`, the paper renders as written. Any other
 label, such as `B` or `C`, gives its own key, the same every time, so the
 student and answer renders always agree.
 
-- A question is an `.alpha-list` with four options and one `.correct` marker.
-  Its options rotate together, so the correct one lands on its new letter.
-- A question whose options cite a listing, figure or table (`@lst-`, `@fig-`,
-  `@tbl-`) keeps its order, so option A still points at panel (a).
+- A question is an `.alpha-list` whose list, `A) ...` or `- ...`, has four
+  options and one `.correct` marker. Its options rotate together, so the
+  correct one lands on its new letter. Other answer lists keep their order and
+  the render reports them.
+- When each option cites one listing, figure or table (`@lst-`, `@fig-`,
+  `@tbl-`) and the four panels are the blocks of one parent, such as
+  `::: {#lst-x layout-ncol="2"}` with four identified blocks, figures or
+  tables, the panels rotate with their options, so
+  option A still shows panel (a). Other panel questions, such as options that
+  pair two listings, keep their order.
 - The new key changes every other answer, keeps the A to D totals balanced and
   avoids the same letter on consecutive questions.
 - Explanation bullets written as `- **A.** ...` follow their options. A first
   word that repeats the bullet's letter, as in `**A.** A counts ...`, changes
-  with it. Describe other options instead of naming their letters; the render
-  warns when an explanation names one.
-- The subtitle gets "Version B", and an answer build
-  (`exercise-audience: answers`) ends with the version's key.
+  with it.
+- A question whose Solution names options by letter in another way, such as
+  `Option A`, `**Answer:** A`, `A) ...` or "the same mistake as A", keeps its
+  order, so its explanation stays true, and the render reports it. Describe the
+  other options instead of naming their letters to let the question move.
+  Letters that are data, such as "the C band", do not count.
+- An answer build (`exercise-audience: answers`) ends with the version's key,
+  numbered by each answer list's position on the page.
+- The paper names no version by default. Set `exam-version-label: true` to add
+  "Version B" to the subtitle.
 
 The filter comes with the extension and runs before `exercise-labels`. A
 project that loads the filters by path lists `exam-version.lua` first.
