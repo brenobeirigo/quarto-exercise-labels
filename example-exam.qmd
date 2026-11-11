@@ -169,7 +169,7 @@ D) @lst-max-d ignores `y`.
 :::
 
 ::: {.exercise-include target-level="2"}
-# A solution that names a letter {#sec-named}
+# A solution as a list {#sec-declare}
 
 Which statement declares an integer?
 
@@ -181,7 +181,12 @@ D) `Dim n As Boolean`
 :::
 
 ::: {.callout-note title="Solution"}
-**Answer:** C. Only C declares an integer.
+::: {.alpha-explanations}
+A) Declares text.
+B) Declares a decimal number.
+C) [Declares a whole number.]{.correct}
+D) Declares `True` or `False`.
+:::
 :::
 :::
 

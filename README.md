@@ -218,34 +218,36 @@ quarto render example-exam.qmd -M exercise-audience:answers -M exam-version:B
 |---|---|
 | ![Version A of the example exam](images/exam-version-A.png) | ![Version B of the example exam](images/exam-version-B.png) |
 
+Every Solution in the example is only its `.alpha-explanations` list. There is
+no separate "**Answer:** C" line: the explanation marked `.correct` is the
+answer, and it moves with its option, so no letter can go stale.
+
 What changed in version B:
 
-1. **Loop output**, a plain question: the correct option moves from B to D,
-   and the explanations in its `.alpha-explanations` block follow, with
-   `.correct` still on the right one.
+1. **Loop output**, a plain question: the correct option moves from B to A,
+   and the explanations follow, with `.correct` still on the right one.
 2. **Summing a list**, one listing per option: the correct option moves from
-   B to A, and the four listings move with their options, so A still shows
-   panel (a) and every explanation still names the listing it describes.
+   B to D, and the four listings move with their options, so D shows panel (d)
+   and every explanation still names the listing it describes.
 3. **Two correct listings**, a pair per option: the correct pair moves from A
-   to B. Every letter names the same slots as before, A (a) and (b), B (b) and
+   to C. Every letter names the same slots as before, A (a) and (b), B (b) and
    (c), C (c) and (d), D (a) and (d), now filled with the listings that make
    the new key true.
-4. **A solution that names a letter** ("**Answer:** C") keeps its order,
-   because the letter would be wrong in version B. Name the answer by its
-   content instead, `**Answer:** Dim n As Integer`, and the question moves
-   like the others.
+4. **A solution as a list**, the plainest case: the correct option moves from
+   C to D, and its explanation goes with it.
 5. **An option that refers to the others** ("None of the above") keeps its
-   order.
+   order, and the render says why:
 
-The render says why the last two stay:
-
-```
-WARNING exam-version: question 4 keeps its order: it names options by letter; name them by their content instead
-WARNING exam-version: question 5 keeps its order: an option refers to the other options
-```
+   ```
+   WARNING exam-version: question 5 keeps its order: an option refers to the other options
+   ```
 
 Each answer view ends with its key: `Key, version A: 1 B, 2 B, 3 A, 4 C, 5 B`
-and `Key, version B: 1 D, 2 A, 3 B, 4 C, 5 B`.
+and `Key, version B: 1 A, 2 D, 3 C, 4 D, 5 B`.
+
+A Solution that adds "**Answer:** C" keeps its order, because the letter would
+be wrong in version B; the render reports it with the fix, to name the option
+by its content.
 
 ### Questions
 
