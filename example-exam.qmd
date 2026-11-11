@@ -1,0 +1,203 @@
+---
+title: "Exam versions example"
+subtitle: "Five made-up questions, one for each case"
+format:
+  html:
+    toc: false
+    css: example-exam.css
+filters:
+  - exercise-labels
+exercise-labels:
+  suffix: ")"
+---
+
+<!--
+Render the written order (version A) and a new key (version B):
+
+  quarto render example-exam.qmd -M exercise-audience:answers
+  quarto render example-exam.qmd -M exercise-audience:answers -M exam-version:B
+
+Use exercise-audience:student for the paper students receive.
+-->
+
+::: {.exercise-include target-level="2"}
+# Loop output {#sec-loop-output}
+
+What does the loop print?
+
+```vb
+For i = 1 To 3
+    Debug.Print i * 2
+Next i
+```
+
+::: {.alpha-list}
+A) 1, 2, 3
+B) [2, 4, 6]{.correct}
+C) 2, 4, 6, 8
+D) 3, 6, 9
+:::
+
+::: {.callout-note title="Solution"}
+::: {.alpha-explanations}
+A) Prints `i` instead of `i * 2`.
+B) [Doubles each of the three values of `i`.]{.correct}
+C) Runs the loop one extra time.
+D) Multiplies by three.
+:::
+:::
+:::
+
+::: {.exercise-include target-level="2"}
+# Summing a list {#sec-summing}
+
+Which listing returns the sum of the values in `v`?
+
+::: {.alpha-list}
+A) @lst-sum-a
+B) [@lst-sum-b]{.correct}
+C) @lst-sum-c
+D) @lst-sum-d
+:::
+
+:::: {#lst-sum layout-ncol="2"}
+::: {#lst-sum-a}
+```vb
+total = 0
+For i = 1 To n - 1
+    total = total + v(i)
+Next i
+```
+Stops one short.
+:::
+
+::: {#lst-sum-b}
+```vb
+total = 0
+For i = 1 To n
+    total = total + v(i)
+Next i
+```
+Adds every value.
+:::
+
+::: {#lst-sum-c}
+```vb
+For i = 1 To n
+    total = 0
+    total = total + v(i)
+Next i
+```
+Resets inside the loop.
+:::
+
+::: {#lst-sum-d}
+```vb
+total = 1
+For i = 1 To n
+    total = total * v(i)
+Next i
+```
+Multiplies.
+:::
+
+Four ways to sum `v(1)` to `v(n)` (Question [-@sec-summing]).
+::::
+
+::: {.callout-note title="Solution"}
+::: {.alpha-explanations}
+A) @lst-sum-a misses the last value.
+B) [@lst-sum-b adds every value once.]{.correct}
+C) @lst-sum-c keeps only the last value.
+D) @lst-sum-d computes a product.
+:::
+:::
+:::
+
+::: {.exercise-include target-level="2"}
+# Two correct listings {#sec-pairs}
+
+Which pair of listings both return the larger of `x` and `y`?
+
+::: {.alpha-list}
+A) [@lst-max-a and @lst-max-b]{.correct}
+B) @lst-max-b and @lst-max-c
+C) @lst-max-c and @lst-max-d
+D) @lst-max-a and @lst-max-d
+:::
+
+:::: {#lst-max layout-ncol="2"}
+::: {#lst-max-a}
+```vb
+If x > y Then m = x Else m = y
+```
+With If.
+:::
+
+::: {#lst-max-b}
+```vb
+m = WorksheetFunction.Max(x, y)
+```
+With Max.
+:::
+
+::: {#lst-max-c}
+```vb
+If x < y Then m = x Else m = y
+```
+Reversed test.
+:::
+
+::: {#lst-max-d}
+```vb
+m = x
+```
+Ignores `y`.
+:::
+
+Four ways to find the larger value (Question [-@sec-pairs]).
+::::
+
+::: {.callout-note title="Solution"}
+::: {.alpha-explanations}
+A) [Both pick the larger value.]{.correct}
+B) @lst-max-c returns the smaller value.
+C) Neither listing is correct.
+D) @lst-max-d ignores `y`.
+:::
+:::
+:::
+
+::: {.exercise-include target-level="2"}
+# A solution that names a letter {#sec-named}
+
+Which statement declares an integer?
+
+::: {.alpha-list}
+A) `Dim n As String`
+B) `Dim n As Double`
+C) [`Dim n As Integer`]{.correct}
+D) `Dim n As Boolean`
+:::
+
+::: {.callout-note title="Solution"}
+**Answer:** C. Only C declares an integer.
+:::
+:::
+
+::: {.exercise-include target-level="2"}
+# An option that refers to the others {#sec-none}
+
+Which value does `CInt("3.7")` return?
+
+::: {.alpha-list}
+A) 3
+B) [4]{.correct}
+C) 3.7
+D) None of the above
+:::
+
+::: {.callout-note title="Solution"}
+`CInt` rounds to the nearest integer, so it returns 4.
+:::
+:::

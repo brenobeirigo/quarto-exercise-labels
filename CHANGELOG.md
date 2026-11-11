@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.0.0
+
+- `exam-version` works one question block at a time: the `.exercise-include`,
+  or the section under the question's heading. Nothing carries over from one
+  question to the next.
+- Options and panels move by an order that keeps every letter's panels, in the
+  same order, for any pattern of panel citations; the key uses only letters a
+  question can reach.
+- A question keeps its order whenever its statement, hints or Solution name a
+  letter anywhere, including bold text, headings, tables and definition lists,
+  when an option refers to the others, or when another question cites its
+  panels. Data letters such as "column B" or "A, D, 1, C" do not count.
+- The article "A" is never rewritten; a bullet's own letter changes only when
+  all four bullets start with theirs. Labels already in an explanation block
+  are corrected, not doubled.
+- `exam-version: false` switches the feature off; `A` keeps the order and
+  prints its key.
+
 ## 1.6.0
 
 - `.alpha-explanations` takes the same lettered list as `.alpha-list`, with

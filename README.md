@@ -199,48 +199,115 @@ quarto render exam.qmd --profile questions -M exam-version:B
 quarto render exam.qmd --profile answers -M exam-version:B
 ```
 
-Without `exam-version`, or with `A`, the paper renders as written. Any other
-label, such as `B` or `C`, gives its own key, the same every time, so the
-student and answer renders always agree.
+Without `exam-version`, or with `false`, the paper renders as written. `A`
+keeps the written order but, like any version, prints its key and, on
+request, its label. Any other label, such as `B` or `C`, gives its own key,
+the same every time, so the student and answer renders always agree.
 
-- A question is an `.alpha-list` whose list, `A) ...` or `- ...`, has four
-  options and one `.correct` marker. Its options rotate together, so the
-  correct one lands on its new letter. Other answer lists keep their order and
-  the render reports them.
-- When the options cite listings, figures or tables (`@lst-`, `@fig-`,
-  `@tbl-`) and the four cited panels are the blocks of one parent, such as
-  `::: {#lst-x layout-ncol="2"}`, the panels rotate by the same step. Every
-  option keeps its panels: (a) stays with A, and options that pair panels keep
-  the pattern A (a) and (b), B (b) and (c), and so on. Options that point at
-  lines of one listing keep their order.
-- The new key changes every other answer, keeps the A to D totals balanced and
-  avoids the same letter on consecutive questions.
-- Enclose the explanations like the options: the same lettered list, one
-  explanation per option in option order, with `.correct` on the correct
-  option's explanation. The list follows its options, and Pandoc letters it:
+### Demo
 
-  ```markdown
-  ::: {.alpha-explanations}
-  A) Counts all 100 inner passes in `P2`.
-  B) Lets `P1` continue from the `c2` of `P2`.
-  C) [Resets `c2` at each outer pass.]{.correct}
-  D) Adds the two local counters.
-  :::
-  ```
+[`example-exam.qmd`](example-exam.qmd) holds five made-up questions, one for
+each case. Render its answer view as written and as version B:
 
-  A bullet list in the block gets bold **A.** to **D.** labels instead, and
-  explanation bullets written as `- **A.** ...` outside a block also follow
-  their options. A first word that repeats the option's letter, as in
-  "A counts ...", changes with it.
-- A question whose Solution names options by letter in another way, such as
-  `Option A`, `**Answer:** A`, `A) ...` or "the same mistake as A", keeps its
-  order, so its explanation stays true, and the render reports it. Describe the
-  other options instead of naming their letters to let the question move.
-  Letters that are data, such as "the C band", do not count.
-- An answer build (`exercise-audience: answers`) ends with the version's key,
-  numbered by each answer list's position on the page.
-- The paper names no version by default. Set `exam-version-label: true` to add
-  "Version B" to the subtitle.
+```bash
+quarto render example-exam.qmd -M exercise-audience:answers
+quarto render example-exam.qmd -M exercise-audience:answers -M exam-version:B
+```
+
+| Version A, as written | Version B |
+|---|---|
+| ![Version A of the example exam](images/exam-version-A.png) | ![Version B of the example exam](images/exam-version-B.png) |
+
+What changed in version B:
+
+1. **Loop output**, a plain question: the correct option moves from B to D,
+   and the explanations in its `.alpha-explanations` block follow, with
+   `.correct` still on the right one.
+2. **Summing a list**, one listing per option: the correct option moves from
+   B to A, and the four listings move with their options, so A still shows
+   panel (a) and every explanation still names the listing it describes.
+3. **Two correct listings**, a pair per option: the correct pair moves from A
+   to B. Every letter names the same slots as before, A (a) and (b), B (b) and
+   (c), C (c) and (d), D (a) and (d), now filled with the listings that make
+   the new key true.
+4. **A solution that names a letter** ("**Answer:** C") keeps its order.
+5. **An option that refers to the others** ("None of the above") keeps its
+   order.
+
+The render says why the last two stay:
+
+```
+WARNING exam-version: question 4 keeps its order: it names options by letter
+WARNING exam-version: question 5 keeps its order: an option refers to the other options
+```
+
+Each answer view ends with its key: `Key, version A: 1 B, 2 B, 3 A, 4 C, 5 B`
+and `Key, version B: 1 D, 2 A, 3 B, 4 C, 5 B`.
+
+### Questions
+
+A question is the block that holds one `.alpha-list`: its `.exercise-include`
+or, in a paper without includes, the widest section under a heading that holds
+no other answer list. The filter changes nothing outside that block, so one
+question never affects another.
+
+The `.alpha-list` holds four options, written `A) ...` or `- ...`, and one
+`.correct` marker. The options are reordered so the correct one lands on its
+new letter.
+
+### Panels
+
+When the options cite listings, figures or tables (`@lst-`, `@fig-`, `@tbl-`)
+and the four cited panels are the blocks of one parent in the question, such
+as `::: {#lst-x layout-ncol="2"}`, the panels are reordered with the options.
+Every letter keeps exactly the panels it named before, in the same order: if A
+named "(a) and (b)", the option at A still names "(a) and (b)". A letter the
+question cannot reach that way is not used for it.
+
+### Explanations
+
+Write the explanations like the options: the same lettered list, one per
+option in option order, with `.correct` on the correct option's explanation.
+
+```markdown
+::: {.alpha-explanations}
+A) Counts all 100 inner passes in `P2`.
+B) Lets `P1` continue from the `c2` of `P2`.
+C) [Resets `c2` at each outer pass.]{.correct}
+D) Adds the two local counters.
+:::
+```
+
+The list follows its options and Pandoc letters it. A bullet list in the block
+gets bold **A.** to **D.** labels. Without the block, a Solution's list of four
+bullets labelled `**A.**` to `**D.**` follows too, and a first word that
+repeats each bullet's own letter ("**A.** A counts") changes only when all
+four bullets start that way.
+
+### When a question keeps its order
+
+When in doubt, a question keeps its order and the render says why:
+
+- anything else in the question names a letter A to D: the statement, a hint
+  or the Solution, in plain text, bold, a heading, a table or a definition list
+  ("**Answer:** B", "Option B", "the same mistake as A", "B) ...");
+- an option refers to the others, such as "None of the above";
+- its panels cannot move with its options, or another question cites them;
+- its block holds more than one answer list or explanation list.
+
+Letters that are clearly data do not count: next to a word such as "column",
+"grade" or "band", in a list of single values such as "A, D, 1, C", and the
+article "A" before a word that is not a verb. Other data letters, such as
+"higher than C", keep the question in place; describe the options instead of
+naming their letters to let it move.
+
+### The key
+
+The new key changes every question that can move, keeps the A to D totals
+balanced and avoids the same letter on consecutive questions. An answer build
+(`exercise-audience: answers`) ends with it, numbered by each answer list's
+place on the page. The paper names no version by default; set
+`exam-version-label: true` to add "Version B" to the subtitle.
 
 The filter comes with the extension and runs before `exercise-labels`. A
 project that loads the filters by path lists `exam-version.lua` first.
@@ -272,6 +339,8 @@ An answer build keeps the authored identifiers.
 
 - `example.qmd` numbers an Exercises section and an include with a prefix.
 - `example-hierarchical.qmd` shows question groups.
+- `example-exam.qmd` shows exam versions, with `example-exam.css` marking the
+  correct options.
 
 ```bash
 quarto render example.qmd --to html
@@ -282,6 +351,24 @@ quarto render example.qmd --to html
 ```bash
 python -m unittest discover -s tests -v
 ```
+
+## Releases
+
+Install a release with `quarto add brenobeirigo/quarto-exercise-labels@v2.0.0`.
+[CHANGELOG.md](CHANGELOG.md) lists every change, and the
+[releases page](https://github.com/brenobeirigo/quarto-exercise-labels/releases)
+has the notes of each tag.
+
+| Release | What it adds |
+|---|---|
+| [v2.0.0](https://github.com/brenobeirigo/quarto-exercise-labels/releases/tag/v2.0.0) | Exam versions work one question block at a time, move panels by any citation pattern and keep a question in place whenever it names a letter |
+| [v1.6.0](https://github.com/brenobeirigo/quarto-exercise-labels/releases/tag/v1.6.0) | `.alpha-explanations` takes the same lettered list as the options, with `.correct` |
+| [v1.5.0](https://github.com/brenobeirigo/quarto-exercise-labels/releases/tag/v1.5.0) | Enclosed explanations; paired panel options |
+| [v1.4.0](https://github.com/brenobeirigo/quarto-exercise-labels/releases/tag/v1.4.0) | Panel questions move with their listings; the version label is opt-in |
+| [v1.3.0](https://github.com/brenobeirigo/quarto-exercise-labels/releases/tag/v1.3.0) | `-M exam-version:B` renders a new answer key |
+| [v1.2.0](https://github.com/brenobeirigo/quarto-exercise-labels/releases/tag/v1.2.0) | Student and answer builds, fixed labels and `print-start`; the `neutral-answer-ids` extension |
+| [v1.0.1](https://github.com/brenobeirigo/quarto-exercise-labels/releases/tag/v1.0.1) | Case-study setups and multiple-choice includes |
+| [v1.0.0](https://github.com/brenobeirigo/quarto-exercise-labels/releases/tag/v1.0.0) | First release |
 
 ## License
 

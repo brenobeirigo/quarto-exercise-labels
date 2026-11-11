@@ -160,7 +160,7 @@ class ExamVersionTests(unittest.TestCase):
         options = "\n".join(
             f"{L}) [option {number}{L.lower()}]{{.correct}}" if L == correct
             else f"{L}) option {number}{L.lower()}" for L in "ABCD")
-        notes = "\n".join(f"- {L} explains {number}{L.lower()}." for L in "ABCD")
+        notes = "\n".join(f"- Explains {number}{L.lower()}." for L in "ABCD")
         return (f"## Question {number}\n\n::: {{.alpha-list}}\n{options}\n:::\n\n"
                 f"::: {{.callout-note title=\"Solution\"}}\n::: {{.alpha-explanations}}\n"
                 f"{notes}\n:::\n:::\n\n")
@@ -169,7 +169,7 @@ class ExamVersionTests(unittest.TestCase):
         result = self.render({}, body=self.enclosed(1, "B"))
         self.assertEqual(result.returncode, 0, result.stderr)
         for letter in "ABCD":
-            self.assertIn(f"**{letter}.** {letter} explains 1{letter.lower()}.", result.stdout)
+            self.assertIn(f"**{letter}.** Explains 1{letter.lower()}.", result.stdout)
 
     def test_enclosed_explanations_follow_their_options(self):
         body = "".join(self.enclosed(n, "ABCD"[n % 4]) for n in range(1, 9))
@@ -181,7 +181,7 @@ class ExamVersionTests(unittest.TestCase):
             block = result.stdout[result.stdout.index(f"## Question {number}\n"):]
             block = block[:block.index("## Question", 5)] if "## Question" in block[5:] else block
             options = re.findall(rf"option {number}([a-d])", block)[:4]
-            notes = re.findall(rf"\*\*([A-D])\.\*\* \1 explains {number}([a-d])", block)
+            notes = re.findall(rf"\*\*([A-D])\.\*\* Explains {number}([a-d])", block)
             self.assertEqual([n[1] for n in notes], options)
             moved += options != ["a", "b", "c", "d"]
         self.assertGreaterEqual(moved, 6)
