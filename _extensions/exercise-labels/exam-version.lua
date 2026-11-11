@@ -497,7 +497,7 @@ local function analyse(blocks, position, count, panel_use)
     return record
   end
   if scan(blocks, false) then
-    record.reason = "it names options by letter"
+    record.reason = "it names options by letter; name them by their content instead"
     return record
   end
   -- Explanations: at most one enclosed list of four, or one labelled list in

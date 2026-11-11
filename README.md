@@ -230,14 +230,17 @@ What changed in version B:
    to B. Every letter names the same slots as before, A (a) and (b), B (b) and
    (c), C (c) and (d), D (a) and (d), now filled with the listings that make
    the new key true.
-4. **A solution that names a letter** ("**Answer:** C") keeps its order.
+4. **A solution that names a letter** ("**Answer:** C") keeps its order,
+   because the letter would be wrong in version B. Name the answer by its
+   content instead, `**Answer:** Dim n As Integer`, and the question moves
+   like the others.
 5. **An option that refers to the others** ("None of the above") keeps its
    order.
 
 The render says why the last two stay:
 
 ```
-WARNING exam-version: question 4 keeps its order: it names options by letter
+WARNING exam-version: question 4 keeps its order: it names options by letter; name them by their content instead
 WARNING exam-version: question 5 keeps its order: an option refers to the other options
 ```
 
@@ -354,13 +357,14 @@ python -m unittest discover -s tests -v
 
 ## Releases
 
-Install a release with `quarto add brenobeirigo/quarto-exercise-labels@v2.0.0`.
+Install a release with `quarto add brenobeirigo/quarto-exercise-labels@v2.0.1`.
 [CHANGELOG.md](CHANGELOG.md) lists every change, and the
 [releases page](https://github.com/brenobeirigo/quarto-exercise-labels/releases)
 has the notes of each tag.
 
 | Release | What it adds |
 |---|---|
+| [v2.0.1](https://github.com/brenobeirigo/quarto-exercise-labels/releases/tag/v2.0.1) | A question held for naming a letter is reported with the fix: name the option by its content |
 | [v2.0.0](https://github.com/brenobeirigo/quarto-exercise-labels/releases/tag/v2.0.0) | Exam versions work one question block at a time, move panels by any citation pattern and keep a question in place whenever it names a letter |
 | [v1.6.0](https://github.com/brenobeirigo/quarto-exercise-labels/releases/tag/v1.6.0) | `.alpha-explanations` takes the same lettered list as the options, with `.correct` |
 | [v1.5.0](https://github.com/brenobeirigo/quarto-exercise-labels/releases/tag/v1.5.0) | Enclosed explanations; paired panel options |

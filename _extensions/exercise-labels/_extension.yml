@@ -1,6 +1,6 @@
 title: Exercise labels
 author: Breno Alves Beirigo
-version: 2.0.0
+version: 2.0.1
 quarto-required: ">=1.4.0"
 contributes:
   filters:

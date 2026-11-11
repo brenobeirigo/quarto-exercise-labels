@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.1
+
+- A question kept in place because it names options by letter is reported
+  with the fix: name the option by its content instead.
+
 ## 2.0.0
 
 - `exam-version` works one question block at a time: the `.exercise-include`,
